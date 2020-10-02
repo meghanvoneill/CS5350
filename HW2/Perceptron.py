@@ -13,10 +13,17 @@ def main():
     random.seed(23)
     training_set = read_file('data/csv-format/train.csv')
     test_set = read_file('data/csv-format/test.csv')
+    folds = read_CV_folds_csv('data/csv-format/CVfolds/fold', 5)
     learning_rates = [1, .1, .01]
     bias = random.uniform(-.01, .01)
     cv_epochs = 10
     training_epochs = 20
+
+    predict_1_train = [1] * len(training_set['examples'])
+    predict_1_test = [1] * len(test_set['examples'])
+    print('Accuracy of +1 label prediction on all Training: ' + str(accuracy(predict_1_train, training_set['examples'])))
+    print('Accuracy of +1 label prediction on all Test: ' + str(accuracy(predict_1_test, test_set['examples'])))
+    print('\n')
 
     # Simple Perceptron
     weight_vector, new_bias, predictions, updates, accuracies = perceptron(training_set['examples'], training_epochs,
@@ -25,8 +32,7 @@ def main():
     training_acc = accuracy(predictions, training_set['examples'])
     test_acc = accuracy(predictions_on_test, test_set['examples'])
 
-    folds = read_CV_folds_csv('data/csv-format/CVfolds/fold', 5)
-    training_results, test_results, cv_acc = CV_learning_rates(folds, cv_epochs, learning_rates, bias)
+    training_results, test_results, cv_acc = CV_learning_rates_perceptron(folds, cv_epochs, learning_rates, bias)
     average_train = statistics.mean(training_results[0.1])
     average_test = statistics.mean(test_results[0.1])
     print('Simple Perceptron\n')
@@ -65,8 +71,7 @@ def main():
     training_acc = accuracy(predictions, training_set['examples'])
     test_acc = accuracy(predictions_on_test, test_set['examples'])
 
-    folds = read_CV_folds_csv('data/csv-format/CVfolds/fold', 5)
-    training_results, test_results, cv_acc = CV_learning_rates(folds, cv_epochs, learning_rates, bias)
+    training_results, test_results, cv_acc = CV_learning_rates_perceptron_decay(folds, cv_epochs, learning_rates, bias)
     average_train = statistics.mean(training_results[0.1])
     average_test = statistics.mean(test_results[0.1])
     print('Decaying Learning Rate Perceptron\n')
@@ -94,6 +99,44 @@ def main():
     plt.xlabel('epoch')
     plt.title('Decaying Learning Rate Perceptron')
     plt.savefig('Decaying_Learning_Rate_Perceptron.png')
+    plt.show()
+
+
+    # Averaged Perceptron
+    weight_vector, new_bias, predictions, updates, accuracies = perceptron_averaged(training_set['examples'], training_epochs,
+                                                               len(training_set['features']), bias, learning_rates[1])
+    predictions_on_test = predict_all(weight_vector, new_bias, test_set['examples'])
+    training_acc = accuracy(predictions, training_set['examples'])
+    test_acc = accuracy(predictions_on_test, test_set['examples'])
+
+    training_results, test_results, cv_acc = CV_learning_rates_perceptron_averaged(folds, cv_epochs, learning_rates, bias)
+    average_train = statistics.mean(training_results[0.1])
+    average_test = statistics.mean(test_results[0.1])
+    print('Averaged Perceptron\n')
+    print('CV Epoch Accuracy by Learning Rate: ' + str(cv_acc))
+    print('CV Test Accuracy by Learning Rate' + str(test_results))
+    print('CV Average Test Accuracy: ' + str(average_test))
+    print('Training Accuracy: ' + str(training_acc))
+    print('Test Accuracy: ' + str(test_acc))
+    print('Updates: ' + str(updates))
+    print('\n')
+
+    # Build x and y lists from epoch & accuracy data.
+    x = []
+    y = []
+
+    for epoch in accuracies.keys():
+        x.append(epoch)
+        y.append(accuracies[epoch])
+
+    # Plot data without alteration.
+    plt.xlim(0, training_epochs + 1)
+    plt.ylim(0, 1)
+    plt.scatter(x, y, marker='o')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.title('Averaged Perceptron')
+    plt.savefig('Averaged_Perceptron.png')
     plt.show()
 
     return
@@ -187,6 +230,8 @@ def perceptron_decaying_learning_rate(data, epochs, features, bias=0, learning_r
 def perceptron_averaged(data, epochs, features, bias=0, learning_rate=.1):
 
     weight_vector = weight_init(-.01, .01, features)
+    averaged_weight_vector = weight_init(-.01, .01, features)
+    bias_of_a = random.uniform(-.01, .01)
     updates = 0
     accuracies = {}
 
@@ -201,14 +246,30 @@ def perceptron_averaged(data, epochs, features, bias=0, learning_rate=.1):
             if prediction != example['label']:
                 updates += 1
                 weight_vector, bias = update(weight_vector, bias, example, learning_rate, example['label'])
+            # Update the averaged weight vector and bias.
+            averaged_weight_vector = add_weights(weight_vector, averaged_weight_vector)
+            bias_of_a = (bias_of_a + bias) / 2
 
         acc = accuracy(predictions, data)
         accuracies[epoch + 1] = acc
 
-    return weight_vector, bias, predictions, updates, accuracies
+    return averaged_weight_vector, bias_of_a, predictions, updates, accuracies
 
 
-def CV_learning_rates(folds, epochs, learning_rates, bias):
+def add_weights(weight_vector_1, weight_vector_2):
+
+    new_weight_vector = []
+
+    for i in range(len(weight_vector_1)):
+        w1 = weight_vector_1[i]
+        w2 = weight_vector_2[i]
+        new_val = (w1 + w2) / 2
+        new_weight_vector.append(new_val)
+
+    return new_weight_vector
+
+
+def CV_learning_rates_perceptron(folds, epochs, learning_rates, bias):
 
     training_results = {}
     test_results = {}
@@ -229,6 +290,70 @@ def CV_learning_rates(folds, epochs, learning_rates, bias):
                     all_but_one['features'] = all_but_one['features'].union(folds[train_fold]['features'])
 
             weights, bias, predictions, updates, acc = perceptron(all_but_one['examples'], epochs, len(all_but_one['features']), bias=bias, learning_rate=rate)
+            training_accuracy = accuracy(predictions, all_but_one['examples'])
+            test_predictions = predict_all(weights, bias, folds[test_fold]['examples'])
+            test_accuracy = accuracy(test_predictions, folds[test_fold]['examples'])
+
+            training_results[rate].append(training_accuracy)
+            test_results[rate].append(test_accuracy)
+            accuracies[rate].append(acc)
+
+    return training_results, test_results, accuracies
+
+
+def CV_learning_rates_perceptron_decay(folds, epochs, learning_rates, bias):
+
+    training_results = {}
+    test_results = {}
+    accuracies = {}
+
+    for rate in learning_rates:
+
+        training_results[rate] = []
+        test_results[rate] = []
+        accuracies[rate] = []
+
+        # For each heldout fold:
+        for test_fold in range(len(folds)):
+            all_but_one = {'examples': [], 'features': set()}
+            for train_fold in range(len(folds)):
+                if train_fold != test_fold:
+                    all_but_one['examples'] += folds[train_fold]['examples']
+                    all_but_one['features'] = all_but_one['features'].union(folds[train_fold]['features'])
+
+            weights, bias, predictions, updates, acc = perceptron_decaying_learning_rate(all_but_one['examples'], epochs, len(all_but_one['features']), bias=bias, learning_rate=rate)
+            training_accuracy = accuracy(predictions, all_but_one['examples'])
+            test_predictions = predict_all(weights, bias, folds[test_fold]['examples'])
+            test_accuracy = accuracy(test_predictions, folds[test_fold]['examples'])
+
+            training_results[rate].append(training_accuracy)
+            test_results[rate].append(test_accuracy)
+            accuracies[rate].append(acc)
+
+    return training_results, test_results, accuracies
+
+
+def CV_learning_rates_perceptron_averaged(folds, epochs, learning_rates, bias):
+
+    training_results = {}
+    test_results = {}
+    accuracies = {}
+
+    for rate in learning_rates:
+
+        training_results[rate] = []
+        test_results[rate] = []
+        accuracies[rate] = []
+
+        # For each heldout fold:
+        for test_fold in range(len(folds)):
+            all_but_one = {'examples': [], 'features': set()}
+            for train_fold in range(len(folds)):
+                if train_fold != test_fold:
+                    all_but_one['examples'] += folds[train_fold]['examples']
+                    all_but_one['features'] = all_but_one['features'].union(folds[train_fold]['features'])
+
+            weights, bias, predictions, updates, acc = perceptron_averaged(all_but_one['examples'], epochs, len(all_but_one['features']), bias=bias, learning_rate=rate)
             training_accuracy = accuracy(predictions, all_but_one['examples'])
             test_predictions = predict_all(weights, bias, folds[test_fold]['examples'])
             test_accuracy = accuracy(test_predictions, folds[test_fold]['examples'])
