@@ -1,10 +1,16 @@
 from math import copysign
 import random
+import matplotlib.pyplot as plt
 import statistics
 
 
+# Author: Meghan V. O'Neill
+# For HW2: Perceptron & Variants
+# Machine Learning, Fall 2020, Professor Srikumar, University of Utah
+
 def main():
 
+    random.seed(23)
     training_set = read_file('data/csv-format/train.csv')
     test_set = read_file('data/csv-format/test.csv')
     learning_rates = [1, .1, .01]
@@ -12,23 +18,83 @@ def main():
     cv_epochs = 10
     training_epochs = 20
 
-    weight_vector, new_bias, predictions, updates = perceptron(training_set['examples'], training_epochs,
+    # Simple Perceptron
+    weight_vector, new_bias, predictions, updates, accuracies = perceptron(training_set['examples'], training_epochs,
                                                                len(training_set['features']), bias, learning_rates[2])
     predictions_on_test = predict_all(weight_vector, new_bias, test_set['examples'])
     training_acc = accuracy(predictions, training_set['examples'])
     test_acc = accuracy(predictions_on_test, test_set['examples'])
-    #average_train = statistics.mean(training_acc)
-    #average_test = statistics.mean(test_results[0.1])
-    print(training_acc)
-    print(test_acc)
-    #print(updates)
 
-    # folds = read_CV_folds_csv('data/csv-format/CVfolds/fold', 5)
-    # training_results, test_results = CV_learning_rates(folds, cv_epochs, learning_rates, bias)
-    # average_train = statistics.mean(training_results[0.1])
-    # average_test = statistics.mean(test_results[0.1])
-    # print(training_results)
-    # print(average_train)
+    folds = read_CV_folds_csv('data/csv-format/CVfolds/fold', 5)
+    training_results, test_results, cv_acc = CV_learning_rates(folds, cv_epochs, learning_rates, bias)
+    average_train = statistics.mean(training_results[0.1])
+    average_test = statistics.mean(test_results[0.1])
+    print('Simple Perceptron\n')
+    print('CV Epoch Accuracy by Learning Rate: ' + str(cv_acc))
+    print('CV Test Accuracy by Learning Rate' + str(test_results))
+    print('CV Average Test Accuracy: ' + str(average_test))
+    print('Training Accuracy: ' + str(training_acc))
+    print('Test Accuracy: ' + str(test_acc))
+    print('Updates: ' + str(updates))
+    print('\n')
+
+    # Build x and y lists from epoch & accuracy data.
+    x = []
+    y = []
+
+    for epoch in accuracies.keys():
+        x.append(epoch)
+        y.append(accuracies[epoch])
+
+    # Plot data without alteration.
+    plt.xlim(0, training_epochs + 1)
+    plt.ylim(0, 1)
+    plt.scatter(x, y, marker='o')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.title('Simple Perceptron')
+    plt.savefig('Simple_Perceptron.png')
+    plt.show()
+
+
+
+    # Decaying Learning Rate Perceptron
+    weight_vector, new_bias, predictions, updates, accuracies = perceptron_decaying_learning_rate(training_set['examples'], training_epochs,
+                                                               len(training_set['features']), bias, learning_rates[2])
+    predictions_on_test = predict_all(weight_vector, new_bias, test_set['examples'])
+    training_acc = accuracy(predictions, training_set['examples'])
+    test_acc = accuracy(predictions_on_test, test_set['examples'])
+
+    folds = read_CV_folds_csv('data/csv-format/CVfolds/fold', 5)
+    training_results, test_results, cv_acc = CV_learning_rates(folds, cv_epochs, learning_rates, bias)
+    average_train = statistics.mean(training_results[0.1])
+    average_test = statistics.mean(test_results[0.1])
+    print('Decaying Learning Rate Perceptron\n')
+    print('CV Epoch Accuracy by Learning Rate: ' + str(cv_acc))
+    print('CV Test Accuracy by Learning Rate' + str(test_results))
+    print('CV Average Test Accuracy: ' + str(average_test))
+    print('Training Accuracy: ' + str(training_acc))
+    print('Test Accuracy: ' + str(test_acc))
+    print('Updates: ' + str(updates))
+    print('\n')
+
+    # Build x and y lists from epoch & accuracy data.
+    x = []
+    y = []
+
+    for epoch in accuracies.keys():
+        x.append(epoch)
+        y.append(accuracies[epoch])
+
+    # Plot data without alteration.
+    plt.xlim(0, training_epochs + 1)
+    plt.ylim(0, 1)
+    plt.scatter(x, y, marker='o')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.title('Decaying Learning Rate Perceptron')
+    plt.savefig('Decaying_Learning_Rate_Perceptron.png')
+    plt.show()
 
     return
 
@@ -71,6 +137,7 @@ def perceptron(data, epochs, features, bias=0, learning_rate=.1):
 
     weight_vector = weight_init(-.01, .01, features)
     updates = 0
+    accuracies = {}
 
     for epoch in range(epochs):
         random.shuffle(data)
@@ -85,20 +152,73 @@ def perceptron(data, epochs, features, bias=0, learning_rate=.1):
                 weight_vector, bias = update(weight_vector, bias, example, learning_rate, example['label'])
 
         acc = accuracy(predictions, data)
-        # print(acc)
+        accuracies[epoch + 1] = acc
 
-    return weight_vector, bias, predictions, updates
+    return weight_vector, bias, predictions, updates, accuracies
+
+
+def perceptron_decaying_learning_rate(data, epochs, features, bias=0, learning_rate=.1):
+
+    weight_vector = weight_init(-.01, .01, features)
+    updates = 0
+    accuracies = {}
+    time_step = 0
+
+    for epoch in range(epochs):
+        random.shuffle(data)
+        predictions = []
+        lr = learning_rate / (1 + time_step)
+        for example in data:
+            # Predict y' = sgn(w_t^T x_i)
+            prediction = predict(weight_vector, example, bias)
+            predictions.append(prediction)
+            # If y' != y_i, update w_{t+1} = w_t + r(y_i x_i)
+            if prediction != example['label']:
+                updates += 1
+                weight_vector, bias = update(weight_vector, bias, example, lr, example['label'])
+
+        acc = accuracy(predictions, data)
+        accuracies[epoch + 1] = acc
+        time_step += 1
+
+    return weight_vector, bias, predictions, updates, accuracies
+
+
+def perceptron_averaged(data, epochs, features, bias=0, learning_rate=.1):
+
+    weight_vector = weight_init(-.01, .01, features)
+    updates = 0
+    accuracies = {}
+
+    for epoch in range(epochs):
+        random.shuffle(data)
+        predictions = []
+        for example in data:
+            # Predict y' = sgn(w_t^T x_i)
+            prediction = predict(weight_vector, example, bias)
+            predictions.append(prediction)
+            # If y' != y_i, update w_{t+1} = w_t + r(y_i x_i)
+            if prediction != example['label']:
+                updates += 1
+                weight_vector, bias = update(weight_vector, bias, example, learning_rate, example['label'])
+
+        acc = accuracy(predictions, data)
+        accuracies[epoch + 1] = acc
+
+    return weight_vector, bias, predictions, updates, accuracies
 
 
 def CV_learning_rates(folds, epochs, learning_rates, bias):
 
     training_results = {}
     test_results = {}
+    accuracies = {}
 
     for rate in learning_rates:
 
         training_results[rate] = []
         test_results[rate] = []
+        accuracies[rate] = []
 
         # For each heldout fold:
         for test_fold in range(len(folds)):
@@ -108,15 +228,16 @@ def CV_learning_rates(folds, epochs, learning_rates, bias):
                     all_but_one['examples'] += folds[train_fold]['examples']
                     all_but_one['features'] = all_but_one['features'].union(folds[train_fold]['features'])
 
-            weights, bias, predictions, updates = perceptron(all_but_one['examples'], epochs, len(all_but_one['features']), bias=bias, learning_rate=rate)
+            weights, bias, predictions, updates, acc = perceptron(all_but_one['examples'], epochs, len(all_but_one['features']), bias=bias, learning_rate=rate)
             training_accuracy = accuracy(predictions, all_but_one['examples'])
             test_predictions = predict_all(weights, bias, folds[test_fold]['examples'])
             test_accuracy = accuracy(test_predictions, folds[test_fold]['examples'])
 
             training_results[rate].append(training_accuracy)
             test_results[rate].append(test_accuracy)
+            accuracies[rate].append(acc)
 
-    return training_results, test_results
+    return training_results, test_results, accuracies
 
 
 def weight_init(bottom, top, length):
