@@ -1,6 +1,6 @@
 from math import copysign
 import random
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import statistics
 
 
@@ -45,22 +45,22 @@ def main():
     print('\n')
 
     # Build x and y lists from epoch & accuracy data.
-    x = []
-    y = []
-
-    for epoch in accuracies.keys():
-        x.append(epoch)
-        y.append(accuracies[epoch])
-
-    # Plot data without alteration.
-    plt.xlim(0, training_epochs + 1)
-    plt.ylim(0, 1)
-    plt.scatter(x, y, marker='o')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.title('Simple Perceptron')
-    plt.savefig('Simple_Perceptron.png')
-    plt.show()
+    # x = []
+    # y = []
+    #
+    # for epoch in accuracies.keys():
+    #     x.append(epoch)
+    #     y.append(accuracies[epoch])
+    #
+    # # Plot data without alteration.
+    # plt.xlim(0, training_epochs + 1)
+    # plt.ylim(0, 1)
+    # plt.scatter(x, y, marker='o')
+    # plt.ylabel('accuracy')
+    # plt.xlabel('epoch')
+    # plt.title('Simple Perceptron')
+    # plt.savefig('Simple_Perceptron.png')
+    # plt.show()
 
 
 
@@ -84,22 +84,22 @@ def main():
     print('\n')
 
     # Build x and y lists from epoch & accuracy data.
-    x = []
-    y = []
-
-    for epoch in accuracies.keys():
-        x.append(epoch)
-        y.append(accuracies[epoch])
-
-    # Plot data without alteration.
-    plt.xlim(0, training_epochs + 1)
-    plt.ylim(0, 1)
-    plt.scatter(x, y, marker='o')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.title('Decaying Learning Rate Perceptron')
-    plt.savefig('Decaying_Learning_Rate_Perceptron.png')
-    plt.show()
+    # x = []
+    # y = []
+    #
+    # for epoch in accuracies.keys():
+    #     x.append(epoch)
+    #     y.append(accuracies[epoch])
+    #
+    # # Plot data without alteration.
+    # plt.xlim(0, training_epochs + 1)
+    # plt.ylim(0, 1)
+    # plt.scatter(x, y, marker='o')
+    # plt.ylabel('accuracy')
+    # plt.xlabel('epoch')
+    # plt.title('Decaying Learning Rate Perceptron')
+    # plt.savefig('Decaying_Learning_Rate_Perceptron.png')
+    # plt.show()
 
 
     # Averaged Perceptron
@@ -122,22 +122,22 @@ def main():
     print('\n')
 
     # Build x and y lists from epoch & accuracy data.
-    x = []
-    y = []
-
-    for epoch in accuracies.keys():
-        x.append(epoch)
-        y.append(accuracies[epoch])
-
-    # Plot data without alteration.
-    plt.xlim(0, training_epochs + 1)
-    plt.ylim(0, 1)
-    plt.scatter(x, y, marker='o')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.title('Averaged Perceptron')
-    plt.savefig('Averaged_Perceptron.png')
-    plt.show()
+    # x = []
+    # y = []
+    #
+    # for epoch in accuracies.keys():
+    #     x.append(epoch)
+    #     y.append(accuracies[epoch])
+    #
+    # # Plot data without alteration.
+    # plt.xlim(0, training_epochs + 1)
+    # plt.ylim(0, 1)
+    # plt.scatter(x, y, marker='o')
+    # plt.ylabel('accuracy')
+    # plt.xlabel('epoch')
+    # plt.title('Averaged Perceptron')
+    # plt.savefig('Averaged_Perceptron.png')
+    # plt.show()
 
     return
 
