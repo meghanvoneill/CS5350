@@ -102,8 +102,8 @@ def experiment_1(data_set, test_set):
 
     # Build Decision Tree using training files.
     tree = build_decision_tree(data_set)
-    train_accuracy = test(tree, data_set['examples'])
-    test_accuracy = test(tree, test_set['examples'])
+    train_accuracy = accuracy(tree, data_set['examples'])
+    test_accuracy = accuracy(tree, test_set['examples'])
     return train_accuracy, test_accuracy
 
 
@@ -111,8 +111,8 @@ def experiment_2(data_set, test_set):
 
     # Build Decision Tree using training files and depth-limit.
     tree = build_decision_tree(data_set, 3)
-    train_accuracy = test(tree, data_set['examples'])
-    test_accuracy = test(tree, test_set['examples'])
+    train_accuracy = accuracy(tree, data_set['examples'])
+    test_accuracy = accuracy(tree, test_set['examples'])
     return train_accuracy, test_accuracy
 
 
@@ -197,15 +197,15 @@ def cv_testing_with_variable_depths(folds):
                     all_but_one['attributes'] = all_but_one['attributes'].union(folds[train_fold]['attributes'])
 
             tree = build_decision_tree(all_but_one, depth)
-            train_accuracy = test(tree, all_but_one['examples'])
-            test_accuracy = test(tree, folds[test_fold]['examples'])
+            train_accuracy = accuracy(tree, all_but_one['examples'])
+            test_accuracy = accuracy(tree, folds[test_fold]['examples'])
             depth_train_results[depth].append(train_accuracy)
             depth_test_results[depth].append(test_accuracy)
 
     return depth_train_results, depth_test_results
 
 
-def test(tree, test_examples):
+def accuracy(tree, test_examples):
 
     correct = .0
     size = len(test_examples)
