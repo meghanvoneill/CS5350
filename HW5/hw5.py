@@ -3,23 +3,9 @@ import math
 
 def main():
 
-    match_lecture_notes()
-    #match_quiz_data()
+    # match_lecture_notes()
+    match_quiz_data()
 
-    # Question 18: Testing
-    # tests = [([-1, -1, -1], -1), ([-1, 1, -1], -1), ([1, -1, -1], -1), ([1, 1, -1], 1)]
-    # predictions = []
-    #
-    # for test in tests:
-    #     hypothesis = 0
-    #     classifiers_results = test[0]
-    #     label = test[1]
-    #     for index, result in enumerate(classifiers_results):
-    #         hypothesis += result * hypothesis_weights[index]
-    #     prediction = math.copysign(1, hypothesis)
-    #     predictions.append(prediction)
-    #
-    # print('18. Predictions: ' + str(predictions))
 
     return
 
@@ -35,7 +21,34 @@ def match_quiz_data():
 
     # Run AdaBoost to get the alpha weights for each classifier: T = 3.
     T = 3
-    hypothesis_weights = ada_boost(all_classifier_results, T)
+    hypothesis_weights, alpha_weights = ada_boost(all_classifier_results, T)
+
+    # Question 18: Tests
+    quiz_question_18(alpha_weights)
+
+    return
+
+
+def quiz_question_18(alpha_weights):
+
+    tests = [([-1, -1, -1], -1), ([-1, 1, -1], -1), ([1, -1, -1], -1), ([1, 1, -1], 1)]
+    weighted_votes = []
+
+    for test in tests:
+        votes = test[0]
+        weighted_vote = 0
+        print(votes)
+        # For each vote, use the corresponding-indexed weight to assign weighted votes.
+        for index in range(len(votes)):
+            individual_weighted_vote = alpha_weights[index] * votes[index]
+            weighted_vote += individual_weighted_vote
+        print(weighted_vote)
+        weighted_votes.append(weighted_vote)
+
+    print('18. ' + str(weighted_votes))
+
+
+    return
 
 
 def match_lecture_notes():
@@ -57,6 +70,7 @@ def ada_boost(training_set, T_rounds):
     m_size = len(training_set[0])
     init_weight = 1 / float(m_size)
     D_weights = [init_weight] * m_size
+    alpha_values = []
 
     classifiers_available = set()
     for i in range(len(training_set)):
@@ -72,13 +86,14 @@ def ada_boost(training_set, T_rounds):
         # Compute its vote:
         #   alpha_t = 1/2 * ln[(1 - epsilon_t) / epsilon_t]
         alpha_t = calculate_alpha_value(epsilon_t)
+        alpha_values.append(alpha_t)
         print('alpha_t: ' + str(alpha_t))
 
         # Update the values of the weights for the training examples:
         #   D_{t + 1}(i) = (D_t(i) / Z_t) * e ^ (-alpha_t * y_i * h_t(x_i))
         D_weights = update_weights(D_weights, alpha_t, training_set[classifier_index])
 
-    return D_weights
+    return D_weights, alpha_values
 
 
 #   epsilon_t = 1/2 - 1/2 * summation [D_t(i) * y_i * h(x_i)] from i = 0 to m
@@ -143,13 +158,13 @@ def choose_best_classifier_or_numerically(classifiers_data, classifiers_availabl
 
     index_of_best = -1
     lowest_epsilon = 1
-    # accuracy_of_best = -1
 
     # For each classifier:
     for index, classifier_results in enumerate(classifiers_data):
         # If this classifier is not available, continue to the next.
         if index not in classifiers_available:
             continue
+
         # Calculate the weighted error for this classifier.
         epsilon = calculate_weighted_error(D_weights, classifier_results)
 
@@ -157,22 +172,7 @@ def choose_best_classifier_or_numerically(classifiers_data, classifiers_availabl
             lowest_epsilon = epsilon
             index_of_best = index
 
-        # # Look at this classifier's prediction for each example
-        # correct = 0
-        # count = 0
-        # for result in classifier_results:
-        #     guess = result[0]
-        #     label = result[1]
-        #     if guess == label:
-        #         correct += 1
-        #     count += 1
-        # accuracy = correct / count
-        # if accuracy > accuracy_of_best:
-        #     accuracy_of_best = accuracy
-        #     index_of_best = index
-    # print('acc: ' + str(1 - accuracy_of_best))
-
-    return index_of_best, epsilon
+    return index_of_best, lowest_epsilon
 
 
 if __name__ == '__main__':
